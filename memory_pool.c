@@ -56,7 +56,7 @@ void mp_destroy(memory_pool_t* mp) {
 	memory_node_t** walk = &(mp->unused_node[MP_UNUSED_END - MP_UNUSED_BEGIN]);
 	while (*walk) {
 		void* free_ptr = *walk;
-		walk = &((*walk)->tailq_next);
+		*walk = (*walk)->tailq_next;
 		remove_tailq(free_ptr);
 		free(free_ptr);
 	}
