@@ -77,17 +77,11 @@ void* mp_malloc(memory_pool_t* mp, size_t size) {
 	int bit_idx;
 	memory_node_t* mn = 0;
 	char* new_pool;
-
-	if (size < MP_SMALL_BLOCK) {
-		bit_idx = 0;
-	}
-	else {
-		//返回位运算的右边界
-		bit_idx = bit_range2(MP_UNUSED_BEGIN, MP_UNUSED_END, size);
-		assert(bit_idx != -1);
-
-		bit_idx -= MP_UNUSED_BEGIN;
-	}
+	
+	//返回位运算的右边界
+	bit_idx = bit_range2(MP_UNUSED_BEGIN, MP_UNUSED_END, size);
+	assert(bit_idx != -1);
+	bit_idx -= MP_UNUSED_BEGIN;
 
 	mp_enter_unused_lock(mp);
 	//获取可完全容纳申请大小的内存块
@@ -99,7 +93,7 @@ void* mp_malloc(memory_pool_t* mp, size_t size) {
 mp_malloc_try_agin:
 	mn = cutting_tail(mp->unused_node[MP_UNUSED_POOL_SIZE - 1], bit_idx == 0 ? MP_SMALL_BLOCK : size);
 	if (mn) {
-		mn->pool_idx = bit_idx;
+		mn->pool_idx = bit_idx ? bit_idx - 1 : 0;
 		goto mp_malloc_end;
 	}
 	//若申请的大小超过了默认值，则改变申请大小且预留一个头节点
