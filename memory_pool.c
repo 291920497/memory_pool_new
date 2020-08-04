@@ -28,7 +28,7 @@ static void mp_level_unused_lock(memory_pool_t* mp) {
 memory_pool_t* mp_create(uint32_t init_size) {
 	int err_code[2];
 	memory_pool_t* mp = malloc(sizeof(memory_pool_t));
-	char* pool = malloc(init_size + sizeof(memory_pool_t));
+	char* pool = malloc(init_size + sizeof(memory_node_t));
 	assert(mp);
 	assert(pool);
 
@@ -41,7 +41,7 @@ memory_pool_t* mp_create(uint32_t init_size) {
 
 #ifdef _WIN32
 	InitializeCriticalSection(&(mp->mp_unused_lock));
-	InitializeCriticalSection(&(mp->mp_inused_lock));
+	//InitializeCriticalSection(&(mp->mp_inused_lock));
 #else
 	err_code[0] = pthread_spin_init(&(mp->mp_unused_lock), PTHREAD_PROCESS_PRIVATE);
 	//err_code[1] = pthread_spin_init(&(mp->mp_inused_lock), PTHREAD_PROCESS_PRIVATE);
