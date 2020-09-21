@@ -1,5 +1,4 @@
 #include "memory_pool_example.h"
-#include "memory_pool.h"
 
 memory_pool_t* g_mp;
 

@@ -2,6 +2,7 @@
 #define _MEMORY_POOL_EXAMPLE_H_
 
 #include <stdint.h>
+#include "memory_pool.h"
 
 #ifdef __cplusplus
 extern "C" {

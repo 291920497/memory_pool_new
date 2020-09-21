@@ -23,29 +23,42 @@
 typedef struct memory_pool {
 	memory_node_t* alloc_node;
 	memory_node_t* unused_node[MP_UNUSED_POOL_SIZE];
+
+#ifndef MP_SINGLE_THREAD_MOD
+
 #ifdef _WIN32
 	CRITICAL_SECTION mp_unused_lock;
 #else
 	pthread_spinlock_t mp_unused_lock;
 #endif//_WIN32
+
+#endif//MP_SINGLE_THREAD_MOD
 }memory_pool_t;
 
 //tailq critical section
 
 static void mp_enter_unused_lock(memory_pool_t* mp) {
+#ifndef MP_SINGLE_THREAD_MOD
+
 #ifndef _WIN32
 	pthread_spin_lock(&(mp->mp_unused_lock));
 #else
 	EnterCriticalSection(&(mp->mp_unused_lock));
 #endif//_WIN32
+
+#endif//MP_SINGLE_THREAD_MOD
 }
 
 static void mp_leave_unused_lock(memory_pool_t* mp) {
+#ifndef MP_SINGLE_THREAD_MOD
+
 #ifndef _WIN32
 	pthread_spin_unlock(&(mp->mp_unused_lock));
 #else
 	LeaveCriticalSection(&(mp->mp_unused_lock));
 #endif//_WIN32
+
+#endif//MP_SINGLE_THREAD_MOD
 }
 
 
@@ -62,11 +75,15 @@ memory_pool_t* mp_create(size_t pool_size) {
 		mp->alloc_node->pool_idx = 0;
 		mp->alloc_node->tailq_next = 0;
 
+#ifndef MP_SINGLE_THREAD_MOD
+
 #ifdef _WIN32
 		InitializeCriticalSection(&(mp->mp_unused_lock));
 #else
 		pthread_spin_init(&(mp->mp_unused_lock), PTHREAD_PROCESS_PRIVATE);
 #endif//_WIN32
+
+#endif//MP_SINGLE_THREAD_MOD
 		return mp;
 	}
 
@@ -80,12 +97,15 @@ mp_create_failed:
 
 void mp_destroy(memory_pool_t* mp) {
 	free(mp->alloc_node);
+#ifndef MP_SINGLE_THREAD_MOD
 
 #ifndef _WIN32
 	pthread_spin_destroy(&(mp->mp_unused_lock));
 #else
 	DeleteCriticalSection(&(mp->mp_unused_lock));
 #endif//_WIN32
+
+#endif//MP_SINGLE_THREAD_MOD
 	free(mp);
 }
 
@@ -115,7 +135,9 @@ void* mp_malloc(memory_pool_t* mp, size_t size) {
 	//开始分配
 
 	//若有现成的
+#ifndef MP_SINGLE_THREAD_MOD
 	mp_enter_unused_lock(mp);
+#endif//MP_SINGLE_THREAD_MOD
 	if (mn = mp->unused_node[bit_idx]) {
 		mp->unused_node[bit_idx] = mn->tailq_next;
 		mn->use_size = size;
@@ -148,7 +170,9 @@ mp_malloc_try_agin:
 	goto mp_malloc_try_agin;
 	
 mp_malloc_complate:
+#ifndef MP_SINGLE_THREAD_MOD
 	mp_leave_unused_lock(mp);
+#endif//MP_SINGLE_THREAD_MOD
 
 #ifdef MP_DEBUG
 	return mn;
@@ -194,8 +218,12 @@ void mp_free(memory_pool_t* mp, void* free_ptr) {
 #ifndef MP_DEBUG
 	--mn;
 #endif//MP_DEBUG
+#ifndef MP_SINGLE_THREAD_MOD
 	mp_enter_unused_lock(mp);
+#endif//MP_SINGLE_THREAD_MOD
 	mn->tailq_next = mp->unused_node[mn->pool_idx];
 	mp->unused_node[mn->pool_idx] = mn;
+#ifndef MP_SINGLE_THREAD_MOD
 	mp_leave_unused_lock(mp);
+#endif//MP_SINGLE_THREAD_MOD
 }
